@@ -1,40 +1,150 @@
-<!DOCTYPE HTML>
-<html>
-	<head>
-		<title>Daniel Bultas - Web Development</title>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
-		<link rel="stylesheet" href="assets/css/main.css" />
-    	<link rel="author" href="https://plus.google.com/u/0/116502515992281682803">
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>daniel bultas</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="daniel bultas — research, data, machine learning. catchcake.">
+<style>
+  *,*::before,*::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: #0a0a0a; color: #e8e8e8; overflow: hidden;
+    font: 11px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    letter-spacing: 0.12em; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+  footer { position: fixed; left: 0; right: 0; bottom: 28px;
+    display: flex; gap: 18px; justify-content: center; align-items: center;
+    pointer-events: none; }
+  footer a, footer span { color: #e8e8e8; text-decoration: none;
+    display: inline-flex; align-items: center; opacity: 0.55;
+    transition: opacity .25s ease; pointer-events: auto; }
+  footer a:hover { opacity: 1; }
+  footer svg { width: 14px; height: 14px; }
+  .sep { width: 4px; height: 4px; background: currentColor; border-radius: 50%; opacity: 0.3; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<footer>
+  <span>daniel bultas</span>
+  <span class="sep" aria-hidden="true"></span>
+  <a href="https://github.com/bultas" aria-label="GitHub" rel="me">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.55v-2.05c-3.2.7-3.87-1.36-3.87-1.36-.52-1.33-1.27-1.69-1.27-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.02 1.76 2.69 1.25 3.34.96.1-.74.4-1.25.72-1.54-2.55-.29-5.24-1.27-5.24-5.65 0-1.25.45-2.27 1.18-3.07-.12-.29-.51-1.45.11-3.02 0 0 .96-.31 3.15 1.17a10.93 10.93 0 0 1 5.74 0c2.19-1.48 3.15-1.17 3.15-1.17.62 1.57.23 2.73.11 3.02.74.8 1.18 1.82 1.18 3.07 0 4.39-2.7 5.36-5.27 5.64.41.36.78 1.06.78 2.13v3.16c0 .31.21.67.8.55C20.21 21.39 23.5 17.08 23.5 12 23.5 5.65 18.35.5 12 .5z"/></svg>
+  </a>
+  <a href="https://twitter.com/bultas" aria-label="Twitter / X" rel="me">
+    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+  </a>
+</footer>
+<script>
+(() => {
+  const cnv = document.getElementById('c');
+  const ctx = cnv.getContext('2d');
+  let W, H, DPR;
+  const resize = () => {
+    DPR = Math.min(window.devicePixelRatio || 1, 2);
+    W = cnv.width = innerWidth * DPR;
+    H = cnv.height = innerHeight * DPR;
+  };
+  resize();
+  addEventListener('resize', resize);
 
-		<script type="text/javascript">
-			var _gaq = _gaq || [];
-			_gaq.push(['_setAccount', 'UA-19504537-1']);
-			_gaq.push(['_trackPageview']);
-			(function() {
-			var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-			ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-			var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-			})();
-		</script>
+  const N = innerWidth < 700 ? 140 : 260;
+  const K = 5;
+  const palette = ['#e8e8e8','#a8d8ff','#ffd6a5','#caffbf','#ffadad'];
 
-	</head>
-	<body class="is-preload">
-		<header id="header">
-			<h1>Hi, I'm <strong>Daniel Bultas</strong></h1>
-		</header>
+  const ps = Array.from({length: N}, () => ({
+    x: Math.random()*W, y: Math.random()*H,
+    vx: 0, vy: 0, c: 0
+  }));
+  let cs = [];
+  const seed = () => {
+    cs = Array.from({length: K}, () => ({ x: Math.random()*W, y: Math.random()*H }));
+  };
+  seed();
 
-		<footer id="footer">
-			<ul class="icons">
-				<li><a title="Bultas Twitter" href="//twitter.com/bultas" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
-				<li><a title="Bultas Github" href="//github.com/bultas" class="icon fa-github"><span class="label">GitHub</span></a></li>
-			</ul>
-			<ul class="copyright">
-				<li>&copy; World Wide Web</li>
-			</ul>
-		</footer>
-			
-		<script src="assets/js/main.js"></script>
+  let frame = 0;
+  const step = () => {
+    // 1. assign each point to nearest centroid
+    for (const p of ps) {
+      let best = 0, bd = Infinity;
+      for (let k = 0; k < K; k++) {
+        const dx = p.x - cs[k].x, dy = p.y - cs[k].y;
+        const d = dx*dx + dy*dy;
+        if (d < bd) { bd = d; best = k; }
+      }
+      p.c = best;
+    }
 
-	</body>
+    // 2. update centroids toward cluster mean (smoothed k-means step)
+    if (frame % 18 === 0) {
+      const sums = Array.from({length: K}, () => ({x:0,y:0,n:0}));
+      for (const p of ps) { sums[p.c].x += p.x; sums[p.c].y += p.y; sums[p.c].n++; }
+      for (let k = 0; k < K; k++) {
+        if (sums[k].n > 0) {
+          cs[k].x = cs[k].x*0.86 + (sums[k].x/sums[k].n)*0.14;
+          cs[k].y = cs[k].y*0.86 + (sums[k].y/sums[k].n)*0.14;
+        }
+      }
+    }
+
+    // 3. drift particles toward their centroid + a touch of noise
+    for (const p of ps) {
+      const c = cs[p.c];
+      p.vx = p.vx*0.94 + (c.x - p.x)*0.0008;
+      p.vy = p.vy*0.94 + (c.y - p.y)*0.0008;
+      p.x += p.vx + (Math.random()-0.5)*0.5*DPR;
+      p.y += p.vy + (Math.random()-0.5)*0.5*DPR;
+    }
+
+    // 4. trail fade
+    ctx.fillStyle = 'rgba(10,10,10,0.14)';
+    ctx.fillRect(0, 0, W, H);
+
+    // 5. edges within cluster (proximity graph — like a small world / embedding)
+    ctx.lineWidth = 1;
+    const R = 95 * DPR;
+    const R2 = R*R;
+    for (let i = 0; i < N; i++) {
+      for (let j = i+1; j < N; j++) {
+        if (ps[i].c !== ps[j].c) continue;
+        const dx = ps[i].x - ps[j].x, dy = ps[i].y - ps[j].y;
+        const d2 = dx*dx + dy*dy;
+        if (d2 < R2) {
+          const a = (1 - d2/R2) * 0.22;
+          ctx.strokeStyle = `rgba(232,232,232,${a})`;
+          ctx.beginPath();
+          ctx.moveTo(ps[i].x, ps[i].y);
+          ctx.lineTo(ps[j].x, ps[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // 6. points
+    for (const p of ps) {
+      ctx.fillStyle = palette[p.c % palette.length];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 1.5*DPR, 0, Math.PI*2);
+      ctx.fill();
+    }
+
+    frame++;
+    requestAnimationFrame(step);
+  };
+  step();
+
+  // click anywhere = perturb the system, re-seed centroids, watch it re-cluster
+  cnv.addEventListener('pointerdown', (e) => {
+    seed();
+    const cx = e.clientX * DPR, cy = e.clientY * DPR;
+    for (const p of ps) {
+      const dx = p.x - cx, dy = p.y - cy;
+      const d = Math.hypot(dx, dy) + 0.001;
+      const f = Math.min(140*DPR / d, 10);
+      p.vx += (dx/d) * f;
+      p.vy += (dy/d) * f;
+    }
+  });
+})();
+</script>
+</body>
 </html>
