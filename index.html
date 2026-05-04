@@ -52,9 +52,11 @@
   const palette = ['#e8e8e8','#a8d8ff','#ffd6a5','#caffbf','#ffadad'];
 
   const CAP = innerWidth < 700 ? 240 : 420;
+  // life === null → immortal baseline; life ∈ (0,1] → mortal child that fades + dies
+  const LIFESPAN = 360; // ≈ 6s @ 60fps
   const ps = Array.from({length: N}, () => ({
     x: Math.random()*W, y: Math.random()*H,
-    vx: 0, vy: 0, c: 0, aura: 0
+    vx: 0, vy: 0, c: 0, aura: 0, life: null
   }));
   let cs = [];
   const seed = () => {
@@ -72,6 +74,14 @@
 
   let frame = 0;
   const step = () => {
+    // 0. decay mortals; remove when life expires
+    for (let i = ps.length - 1; i >= 0; i--) {
+      if (ps[i].life !== null) {
+        ps[i].life -= 1 / LIFESPAN;
+        if (ps[i].life <= 0) ps.splice(i, 1);
+      }
+    }
+
     // 1. assign each point to nearest centroid
     for (const p of ps) {
       let best = 0, bd = Infinity;
@@ -114,6 +124,13 @@
 
       p.x += p.vx + (Math.random()-0.5)*0.5*DPR;
       p.y += p.vy + (Math.random()-0.5)*0.5*DPR;
+
+      // bounce off viewport edges with slight energy loss
+      const PAD = 2 * DPR;
+      if (p.x < PAD)        { p.x = PAD;       p.vx = -p.vx * 0.72; }
+      else if (p.x > W-PAD) { p.x = W-PAD;     p.vx = -p.vx * 0.72; }
+      if (p.y < PAD)        { p.y = PAD;       p.vy = -p.vy * 0.72; }
+      else if (p.y > H-PAD) { p.y = H-PAD;     p.vy = -p.vy * 0.72; }
     }
 
     // 4. trail fade
@@ -154,10 +171,12 @@
       }
     }
 
-    // 7. points (radius + brightness boosted by aura → "alive" hint)
+    // 7. points (radius + brightness boosted by aura → "alive" hint;
+    //    mortal children fade as their life ticks down)
     for (const p of ps) {
+      const lifeAlpha = p.life === null ? 1 : p.life;
       ctx.fillStyle = palette[p.c % palette.length];
-      ctx.globalAlpha = 0.75 + p.aura * 0.25;
+      ctx.globalAlpha = (0.75 + p.aura * 0.25) * lifeAlpha;
       ctx.beginPath();
       ctx.arc(p.x, p.y, (1.5 + p.aura*2.2) * DPR, 0, Math.PI*2);
       ctx.fill();
@@ -204,10 +223,11 @@
           x: p.x, y: p.y,
           vx: Math.cos(ang) * speed,
           vy: Math.sin(ang) * speed,
-          c: p.c, aura: 0
+          c: p.c, aura: 0, life: 1
         });
       }
-      ps.splice(hit, 1);
+      // remove parent only if mortal (chain reaction); keep immortals intact
+      if (p.life !== null) ps.splice(hit, 1);
       while (ps.length > CAP) ps.shift();
     } else {
       seed();
