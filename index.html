@@ -51,13 +51,29 @@
   const K = 5;
   const palette = ['#e8e8e8','#a8d8ff','#ffd6a5','#caffbf','#ffadad'];
 
-  const CAP = innerWidth < 700 ? 240 : 420;
   // life === null → immortal baseline; life ∈ (0,1] → mortal child that fades + dies
   const LIFESPAN = 360; // ≈ 6s @ 60fps
+  const MAX_MORTALS = innerWidth < 700 ? 60 : 120;
+  let mortalCount = 0;
   const ps = Array.from({length: N}, () => ({
     x: Math.random()*W, y: Math.random()*H,
     vx: 0, vy: 0, c: 0, aura: 0, life: null
   }));
+
+  // pre-built strokeStyle strings, bucketed by alpha → eliminates per-line string allocation
+  const A_BUCKETS = 24;
+  const NET_STROKE = new Array(A_BUCKETS);
+  const AURA_STROKE = new Array(A_BUCKETS);
+  const FLASH_STROKE = new Array(A_BUCKETS);
+  for (let i = 0; i < A_BUCKETS; i++) {
+    const t = (i + 1) / A_BUCKETS;
+    NET_STROKE[i]   = `rgba(232,232,232,${t * 0.22})`;
+    AURA_STROKE[i]  = `rgba(232,232,232,${t * 0.40})`;
+    FLASH_STROKE[i] = `rgba(232,232,232,${t * 0.70})`;
+  }
+  // line buckets — collected each frame, drawn batched, then truncated
+  const netBuckets  = Array.from({length: A_BUCKETS}, () => []);
+  const auraBuckets = Array.from({length: A_BUCKETS}, () => []);
   let cs = [];
   const seed = () => {
     cs = Array.from({length: K}, () => ({ x: Math.random()*W, y: Math.random()*H }));
@@ -78,7 +94,7 @@
     for (let i = ps.length - 1; i >= 0; i--) {
       if (ps[i].life !== null) {
         ps[i].life -= 1 / LIFESPAN;
-        if (ps[i].life <= 0) ps.splice(i, 1);
+        if (ps[i].life <= 0) { ps.splice(i, 1); mortalCount--; }
       }
     }
 
@@ -137,37 +153,58 @@
     ctx.fillStyle = 'rgba(10,10,10,0.14)';
     ctx.fillRect(0, 0, W, H);
 
-    // 5. edges within cluster (proximity graph — like a small world / embedding)
+    // 5. edges within cluster — collect into alpha buckets, then batch-stroke
     ctx.lineWidth = 1;
     const R = 95 * DPR;
     const R2 = R*R;
     const len = ps.length;
     for (let i = 0; i < len; i++) {
+      const pi = ps[i];
       for (let j = i+1; j < len; j++) {
-        if (ps[i].c !== ps[j].c) continue;
-        const dx = ps[i].x - ps[j].x, dy = ps[i].y - ps[j].y;
+        const pj = ps[j];
+        if (pi.c !== pj.c) continue;
+        const dx = pi.x - pj.x, dy = pi.y - pj.y;
         const d2 = dx*dx + dy*dy;
         if (d2 < R2) {
-          const a = (1 - d2/R2) * 0.22;
-          ctx.strokeStyle = `rgba(232,232,232,${a})`;
-          ctx.beginPath();
-          ctx.moveTo(ps[i].x, ps[i].y);
-          ctx.lineTo(ps[j].x, ps[j].y);
-          ctx.stroke();
+          const t = 1 - d2/R2;
+          const b = t >= 1 ? A_BUCKETS-1 : (t * A_BUCKETS) | 0;
+          const arr = netBuckets[b];
+          arr.push(pi.x, pi.y, pj.x, pj.y);
         }
       }
     }
+    for (let b = 0; b < A_BUCKETS; b++) {
+      const arr = netBuckets[b];
+      if (arr.length === 0) continue;
+      ctx.strokeStyle = NET_STROKE[b];
+      ctx.beginPath();
+      for (let k = 0; k < arr.length; k += 4) {
+        ctx.moveTo(arr[k], arr[k+1]);
+        ctx.lineTo(arr[k+2], arr[k+3]);
+      }
+      ctx.stroke();
+      arr.length = 0;
+    }
 
-    // 6. cursor field — soft lines from cursor to particles inside aura
+    // 6. cursor field — bucketed too
     if (mx > -1e5) {
       for (const p of ps) {
         if (p.aura > 0.05) {
-          ctx.strokeStyle = `rgba(232,232,232,${p.aura*0.4})`;
-          ctx.beginPath();
-          ctx.moveTo(mx, my);
-          ctx.lineTo(p.x, p.y);
-          ctx.stroke();
+          const b = p.aura >= 1 ? A_BUCKETS-1 : (p.aura * A_BUCKETS) | 0;
+          auraBuckets[b].push(mx, my, p.x, p.y);
         }
+      }
+      for (let b = 0; b < A_BUCKETS; b++) {
+        const arr = auraBuckets[b];
+        if (arr.length === 0) continue;
+        ctx.strokeStyle = AURA_STROKE[b];
+        ctx.beginPath();
+        for (let k = 0; k < arr.length; k += 4) {
+          ctx.moveTo(arr[k], arr[k+1]);
+          ctx.lineTo(arr[k+2], arr[k+3]);
+        }
+        ctx.stroke();
+        arr.length = 0;
       }
     }
 
@@ -183,13 +220,14 @@
     }
     ctx.globalAlpha = 1;
 
-    // 8. explosion flash rings
+    // 8. explosion flash rings (bucketed strokeStyle)
+    if (flashes.length) ctx.lineWidth = 1.4;
     for (let i = flashes.length - 1; i >= 0; i--) {
       const f = flashes[i];
       f.life -= 0.035;
       if (f.life <= 0) { flashes.splice(i, 1); continue; }
-      ctx.strokeStyle = `rgba(232,232,232,${f.life * 0.7})`;
-      ctx.lineWidth = 1.4;
+      const b = f.life >= 1 ? A_BUCKETS-1 : (f.life * A_BUCKETS) | 0;
+      ctx.strokeStyle = FLASH_STROKE[b];
       ctx.beginPath();
       ctx.arc(f.x, f.y, (1 - f.life) * 44 * DPR, 0, Math.PI*2);
       ctx.stroke();
@@ -213,22 +251,32 @@
     }
 
     if (hit >= 0) {
-      const p = ps[hit];
-      flashes.push({ x: p.x, y: p.y, life: 1 });
+      const parent = ps[hit];
+      const px = parent.x, py = parent.y, pc = parent.c;
+      const parentMortal = parent.life !== null;
+      flashes.push({ x: px, y: py, life: 1 });
+
+      // chain detonation: remove parent first if it was a mortal
+      if (parentMortal) { ps.splice(hit, 1); mortalCount--; }
+
       const children = 5;
       for (let k = 0; k < children; k++) {
+        // if at mortal cap, evict the OLDEST mortal (immortals untouched)
+        if (mortalCount >= MAX_MORTALS) {
+          for (let m = 0; m < ps.length; m++) {
+            if (ps[m].life !== null) { ps.splice(m, 1); mortalCount--; break; }
+          }
+        }
         const ang = (k / children) * Math.PI * 2 + Math.random() * 0.6;
         const speed = (3 + Math.random() * 4) * DPR;
         ps.push({
-          x: p.x, y: p.y,
+          x: px, y: py,
           vx: Math.cos(ang) * speed,
           vy: Math.sin(ang) * speed,
-          c: p.c, aura: 0, life: 1
+          c: pc, aura: 0, life: 1
         });
+        mortalCount++;
       }
-      // remove parent only if mortal (chain reaction); keep immortals intact
-      if (p.life !== null) ps.splice(hit, 1);
-      while (ps.length > CAP) ps.shift();
     } else {
       seed();
       for (const p of ps) {
