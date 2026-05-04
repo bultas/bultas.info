@@ -1,0 +1,63 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  background: #0a0a0a;
+  color: #e8e8e8;
+  overflow: hidden;
+  font: 11px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  letter-spacing: 0.12em;
+}
+
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 28px;
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+}
+
+footer a,
+footer span {
+  color: #e8e8e8;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+  pointer-events: auto;
+}
+
+footer a:hover {
+  opacity: 1;
+}
+
+footer svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sep {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  border-radius: 50%;
+  opacity: 0.3;
+}
