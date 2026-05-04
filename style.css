@@ -9,7 +9,7 @@ html, body {
   background: #0a0a0a;
   color: #e8e8e8;
   overflow: hidden;
-  font: 11px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  font: 13px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   letter-spacing: 0.12em;
 }
 
@@ -50,8 +50,8 @@ footer a:hover {
 }
 
 footer svg {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
 }
 
 .sep {
